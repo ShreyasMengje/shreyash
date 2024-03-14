@@ -1,0 +1,40 @@
+!pip install PyMuPDF pdf2image pytesseract
+
+import fitz
+from pdf2image import convert_from_path
+import pytesseract
+from pytesseract import TesseractNotFoundError
+
+# Provide the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
+
+def extract_text_from_pdf_with_images(pdf_path):
+    text = ""
+    doc = fitz.open(pdf_path)
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        text += page.get_text()
+        images = page.get_images(full=True)
+        for img_index, img in enumerate(images):
+            xref = img[0]
+            base_image = doc.extract_image(xref)
+            image_bytes = base_image["image"]
+            image_path = f'image_{page_num}_{img_index}.png'
+            with open(image_path, 'wb') as img_file:
+                img_file.write(image_bytes)
+            image_text = pytesseract.image_to_string(image_path)
+            text += image_text + "\n"
+    return text
+
+# Replace 'your_pdf_file.pdf' with the name of your PDF file
+pdf_path = 'your_pdf_file.pdf'
+
+try:
+    # Extract text from the PDF including text in images
+    extracted_text = extract_text_from_pdf_with_images(pdf_path)
+
+    # Print or display the extracted text
+    print(extracted_text)
+
+except TesseractNotFoundError:
+    print("Tesseract OCR is not installed or accessible. Please install it and ensure the correct path is provided.")
