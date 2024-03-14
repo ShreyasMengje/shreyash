@@ -1,0 +1,42 @@
+import fitz
+from pdf2image import convert_from_path
+from ocrmypdf import ocr
+
+def extract_text_from_pdf_with_images(pdf_path):
+    text = ""
+    doc = fitz.open(pdf_path)
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        text += "\n"  # Add a newline to separate text from different sources
+        blocks = page.get_text("blocks")
+        for b in blocks:
+            if isinstance(b, dict):  # Check if it's a dictionary
+                if b["type"] == 0:  # Text block
+                    text += b["text"]
+                elif b["type"] == 1:  # Image block
+                    base_image = doc.extract_image(b["number"])
+                    image_bytes = base_image["image"]
+                    image_path = f'image_{page_num}_{b["number"]}.png'
+                    with open(image_path, 'wb') as img_file:
+                        img_file.write(image_bytes)
+                    # Extract text from the image using OCRmyPDF
+                    ocr_output = ocr(image_path, rotate_pages=True)
+                    image_text = ocr_output[0].decode('utf-8')
+                    text += "\n" + image_text + "\n"
+                elif b["type"] == 3:  # Table block
+                    table_text = "\n" + b["text"]
+                    text += table_text
+    return text
+
+# Replace 'your_pdf_file.pdf' with the name of your PDF file
+pdf_path = 'your_pdf_file.pdf'
+
+try:
+    # Extract text from the PDF including text in images
+    extracted_text = extract_text_from_pdf_with_images(pdf_path)
+
+    # Print or display the extracted text
+    print(extracted_text)
+
+except Exception as e:
+    print("Error:", e)
