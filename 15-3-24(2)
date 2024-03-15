@@ -1,0 +1,69 @@
+def calculate_exact_match_accuracy(ocr_text, ground_truth_text):
+    correct_count = 0
+    total_count = len(ground_truth_text)
+
+    for ocr, gt in zip(ocr_text, ground_truth_text):
+        if ocr == gt:
+            correct_count += 1
+
+    accuracy = (correct_count / total_count) * 100
+    return accuracy
+
+def extract_text_from_images(pdf_path):
+    image_text = ""
+    ocr_text = []  # List to store OCR-generated text
+    ground_truth_text = []  # List to store ground truth text
+    
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages, start=1):
+                images = page.images
+                
+                for i, img in enumerate(images):
+                    try:
+                        # Convert image to OpenCV format
+                        im = pdf.pages[page_num-1].to_image(resolution=150, stream=io.BytesIO(img["stream"]))
+                        im_cv2 = cv2.cvtColor(np.array(im), cv2.COLOR_RGB2BGR)
+                        
+                        # Convert image to black and white
+                        im_bw = cv2.cvtColor(im_cv2, cv2.COLOR_BGR2GRAY)
+                        
+                        # Save processed image as PNG with meaningful name
+                        image_path = f"page_{page_num}_image_{i}.png"
+                        cv2.imwrite(image_path, im_bw)
+                        
+                        # Perform OCR on the saved image using pytesseract
+                        img_text = pytesseract.image_to_string(Image.open(image_path))
+                        
+                        # Append OCR-generated text and corresponding ground truth text
+                        ocr_text.append(img_text)
+                        # Example: Assuming ground truth text is manually created or retrieved
+                        ground_truth_text.append("Ground Truth Text for Image")
+                        
+                        # Remove the temporary image file
+                        os.remove(image_path)
+                    except Exception as e:
+                        print(f"Error processing image on page {page_num}, Image {i + 1}: {e}")
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    # Calculate exact match accuracy
+    accuracy = calculate_exact_match_accuracy(ocr_text, ground_truth_text)
+    print(f"Exact Match Accuracy: {accuracy}%")
+    
+    return image_text
+
+# Replace 'your_pdf_file.pdf' with the path to your PDF file
+pdf_path = '/content/genai-principles.pdf'
+
+try:
+    # Extract text from images in the PDF
+    extracted_image_text = extract_text_from_images(pdf_path)
+
+    # Print the extracted image text
+    print("Extracted Image Text:")
+    print(extracted_image_text)
+
+except TesseractNotFoundError:
+    print("Tesseract OCR is not installed or accessible. Please install it and ensure the correct path is provided.")
