@@ -1,0 +1,49 @@
+import PyPDF2
+import pdfplumber
+import re
+
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text()
+    return text
+
+def extract_tables_from_pdf(pdf_path):
+    tables = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            tables += page.extract_tables()
+    return tables
+
+def extract_images_from_pdf(pdf_path):
+    images = []
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            for img in page.images:
+                images.append(img["stream"])
+    return images
+
+def main(pdf_path):
+    text = extract_text_from_pdf(pdf_path)
+    tables = extract_tables_from_pdf(pdf_path)
+    images = extract_images_from_pdf(pdf_path)
+
+    # Display extracted text
+    print("Extracted Text:")
+    print(text)
+
+    # Display extracted tables
+    print("\nExtracted Tables:")
+    for table in tables:
+        for row in table:
+            print(row)
+
+    # Display extracted images (in binary format)
+    print("\nExtracted Images:")
+    for idx, img in enumerate(images):
+        print(f"Image {idx + 1}: {img}")
+
+if __name__ == "__main__":
+    pdf_path = "your_pdf_path.pdf"  # तुमच्या पीडीएफचा पूर्ण पथ येथे निर्दिष्ट करा
+    main(pdf_path)
