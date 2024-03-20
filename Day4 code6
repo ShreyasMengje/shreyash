@@ -1,0 +1,66 @@
+from pdf2image import convert_from_path
+import cv2
+import pytesseract
+import os
+from PyPDF2 import PdfFileReader, PdfFileWriter
+
+# Path to the PDF file
+pdf_path = 'path/to/your/pdf/file.pdf'
+
+# Function to enhance image quality
+def enhance_image(image):
+    # Apply image processing techniques to enhance quality (e.g., denoising, sharpening, contrast adjustment)
+    # Example: Gaussian blur
+    blurred_image = cv2.GaussianBlur(image, (5, 5), 0)
+    return blurred_image
+
+# Function to convert PDF to searchable PDF
+def convert_to_searchable_pdf(images):
+    # Create a PDF writer object
+    pdf_writer = PdfFileWriter()
+
+    # Iterate through each image (page) in the PDF
+    for idx, image in enumerate(images):
+        # Convert the image to grayscale
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # Extract text from the page using OCR (Tesseract)
+        page_text = pytesseract.image_to_string(gray_image)
+
+        # Create a new PDF page with the extracted text
+        pdf_page = PdfFileReader(f'extracted_text/page_{idx + 1}.txt')
+        pdf_writer.addPage(pdf_page)
+
+    # Save the searchable PDF
+    with open('searchable_pdf.pdf', 'wb') as output_pdf:
+        pdf_writer.write(output_pdf)
+
+# Convert PDF pages to images
+images = convert_from_path(pdf_path)
+
+# Create a directory to save extracted text
+if not os.path.exists('extracted_text'):
+    os.makedirs('extracted_text')
+
+# Enhance the quality of images
+enhanced_images = [enhance_image(cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)) for image in images]
+
+# Save enhanced images and extract text using OCR
+for idx, image in enumerate(enhanced_images):
+    # Save the enhanced image
+    cv2.imwrite(f'enhanced_images/page_{idx + 1}.jpg', image)
+
+    # Convert the enhanced image to grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+    # Extract text from the grayscale image using OCR (Tesseract)
+    extracted_text = pytesseract.image_to_string(gray_image)
+
+    # Save the extracted text to a text file
+    with open(f'extracted_text/page_{idx + 1}.txt', 'w') as file:
+        file.write(extracted_text)
+
+# Convert enhanced images to searchable PDF
+convert_to_searchable_pdf(enhanced_images)
+
+print("Enhanced PDF created successfully.")
